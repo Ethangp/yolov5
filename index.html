@@ -1,0 +1,294 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Cat Dashboard</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+        margin: 0;
+        background: #050509;
+        color: #f5f5f7;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px;
+        background: #0b0b10;
+        border-bottom: 1px solid #22232b;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .brand {
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-size: 12px;
+        color: #9ca3af;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+      }
+      .tab-btn {
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid #30313a;
+        background: #111118;
+        color: #e5e7eb;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .tab-btn.active {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: white;
+      }
+      main {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr);
+        gap: 16px;
+        padding: 16px;
+      }
+      .card {
+        background: #0b0b11;
+        border-radius: 16px;
+        border: 1px solid #1f2933;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .card-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .card-subtitle {
+        font-size: 11px;
+        color: #9ca3af;
+      }
+      .live-video {
+        width: 100%;
+        border-radius: 12px;
+        background: black;
+        max-height: 60vh;
+        object-fit: contain;
+      }
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .stat-pill {
+        border-radius: 12px;
+        padding: 8px;
+        background: #111118;
+        border: 1px solid #1f2933;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .stat-label {
+        font-size: 11px;
+        color: #9ca3af;
+      }
+      .stat-value {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .snapshot-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 8px;
+      }
+      .snapshot {
+        border-radius: 12px;
+        overflow: hidden;
+        background: #050509;
+        border: 1px solid #1f2933;
+        display: flex;
+        flex-direction: column;
+      }
+      .snapshot img {
+        width: 100%;
+        display: block;
+      }
+      .snapshot-meta {
+        padding: 4px 6px 6px;
+        font-size: 11px;
+        color: #d1d5db;
+      }
+      .section {
+        display: none;
+      }
+      .section.active {
+        display: block;
+      }
+      @media (max-width: 900px) {
+        main {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <div class="brand">Cat Tracker</div>
+        <div style="font-size: 11px; color:#6b7280;">RTSP + YOLO live dashboard</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="live">Live</button>
+          <button class="tab-btn" data-tab="snapshots">Snapshots</button>
+          <button class="tab-btn" data-tab="stats">Stats</button>
+        </div>
+        <a href="{{ url_for('gallery') }}" style="color: #9ca3af; text-decoration: none; font-size: 12px; padding: 6px 12px; border-radius: 999px; border: 1px solid #30313a;">Gallery</a>
+      </div>
+    </header>
+
+    <main>
+      <!-- LEFT: Live / Snapshots -->
+      <div>
+        <!-- Live Section -->
+        <section id="section-live" class="section active">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Live stream</div>
+              <div class="card-subtitle" id="live-status">Watching…</div>
+            </div>
+            <img class="live-video" src="/video" alt="Live stream" />
+          </div>
+        </section>
+
+        <!-- Snapshots Section -->
+        <section id="section-snapshots" class="section">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Recent cat snapshots</div>
+              <div class="card-subtitle" id="snapshot-count">
+                Loading…
+              </div>
+            </div>
+            <div id="snapshot-grid" class="snapshot-grid"></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- RIGHT: Stats -->
+      <div>
+        <section id="section-stats" class="section active">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Session stats</div>
+              <div class="card-subtitle" id="last-updated">
+                …
+              </div>
+            </div>
+
+            <div class="stat-grid">
+              <div class="stat-pill">
+                <div class="stat-label">Total cat detections</div>
+                <div class="stat-value" id="stat-cat-count">0</div>
+              </div>
+              <div class="stat-pill">
+                <div class="stat-label">Last cat seen</div>
+                <div class="stat-value" id="stat-last-time">–</div>
+              </div>
+              <div class="stat-pill">
+                <div class="stat-label">Latest snapshot</div>
+                <div class="stat-value" id="stat-last-file">–</div>
+              </div>
+              <div class="stat-pill">
+                <div class="stat-label">Events cached</div>
+                <div class="stat-value" id="stat-events">0</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      // Tab switching
+      const tabButtons = document.querySelectorAll(".tab-btn");
+      const sections = {
+        live: document.getElementById("section-live"),
+        snapshots: document.getElementById("section-snapshots"),
+        stats: document.getElementById("section-stats"),
+      };
+
+      tabButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          tabButtons.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+
+          const tab = btn.dataset.tab;
+          Object.entries(sections).forEach(([name, el]) => {
+            el.classList.toggle("active", name === tab || (tab === "live" && name === "stats" && window.innerWidth > 900));
+          });
+        });
+      });
+
+      async function fetchStats() {
+        try {
+          const res = await fetch("/stats");
+          if (!res.ok) throw new Error("Failed to load /stats");
+          const data = await res.json();
+
+          document.getElementById("stat-cat-count").textContent = data.cat_count ?? 0;
+          document.getElementById("stat-events").textContent = data.events?.length ?? 0;
+
+          const last = data.last_event;
+          if (last) {
+            document.getElementById("stat-last-time").textContent = last.timestamp || "–";
+            document.getElementById("stat-last-file").textContent = last.filename || "–";
+            document.getElementById("last-updated").textContent = "Last update: " + new Date().toLocaleTimeString();
+          } else {
+            document.getElementById("stat-last-time").textContent = "No cats yet";
+            document.getElementById("stat-last-file").textContent = "–";
+            document.getElementById("last-updated").textContent = "Waiting for first detection…";
+          }
+
+          // Snapshots
+          const grid = document.getElementById("snapshot-grid");
+          grid.innerHTML = "";
+          const events = data.events || [];
+          document.getElementById("snapshot-count").textContent = events.length + " snapshots";
+
+          events.slice().reverse().forEach((ev) => {
+            if (!ev.filename) return;
+
+            const div = document.createElement("div");
+            div.className = "snapshot";
+            const img = document.createElement("img");
+            img.src = "/captures/" + encodeURIComponent(ev.filename);
+            img.alt = "Cat snapshot";
+
+            const meta = document.createElement("div");
+            meta.className = "snapshot-meta";
+            meta.textContent = (ev.timestamp || "") + (ev.count ? ` • ${ev.count} cat(s)` : "");
+
+            div.appendChild(img);
+            div.appendChild(meta);
+            grid.appendChild(div);
+          });
+        } catch (err) {
+          console.error(err);
+          document.getElementById("last-updated").textContent = "Error loading stats";
+        }
+      }
+
+      // Poll stats every 5 seconds
+      fetchStats();
+      setInterval(fetchStats, 5000);
+    </script>
+  </body>
+</html>
